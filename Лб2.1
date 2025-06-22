@@ -1,0 +1,57 @@
+import os
+import re
+
+def analyze_log_file(log_path, save_dir, report_filename="http_summary.txt"):
+
+    http_codes = {}
+    result_path = os.path.join(save_dir, report_filename)
+
+    try:
+        with open(log_path, 'r', encoding='utf-8') as source:
+            for line in source:
+                match = re.search(r'" (\d{3}) ', line)
+                if match:
+                    code = match.group(1)
+                    http_codes[code] = http_codes.get(code, 0) + 1
+    except FileNotFoundError:
+        print("Файл '{log_path}' не знайдено.")
+        return {}
+    except IOError:
+        print("Не вдалося прочитати файл '{log_path}'.")
+        return {}
+
+    try:
+        os.makedirs(save_dir, exist_ok=True)
+    except Exception as err:
+        print("Помилка при створенні теки: {err}")
+        return {}
+
+    try:
+        with open(result_path, 'w', encoding='utf-8') as output:
+            output.write("=== HTTP Status Code Summary ===\n\n")
+            if http_codes:
+                for code, amount in sorted(http_codes.items()):
+                    output.write(f"Status {code}: {amount} times\n")
+            else:
+                output.write("No HTTP status codes were found in the file.\n")
+        print("Звіт успішно збережено у: {result_path}")
+    except Exception as save_err:
+        print("Не вдалося зберегти звіт: {save_err}")
+        return {}
+
+    return http_codes
+
+print("=== HTTP Log Analyzer ===")
+input_path = input("Введіть шлях до лог-файлу: ").strip()
+output_path = input("Введіть шлях до папки для збереження звіту: ").strip()
+
+file_name = "http_codes_result.txt"
+
+final_stats = analyze_log_file(input_path, output_path, file_name)
+
+if final_stats:
+    print(" Підсумок аналізу:")
+    for http_code, total in final_stats.items():
+        print(f"- Код {http_code}: {total}")
+else:
+    print("Аналіз не завершено або немає даних.")
